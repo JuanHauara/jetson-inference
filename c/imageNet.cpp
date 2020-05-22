@@ -119,7 +119,7 @@ bool imageNet::init(const char* prototxt_path, const char* model_path, const cha
 				const char* input, const char* output, uint32_t maxBatchSize,
 				precisionType precision, deviceType device, bool allowGPUFallback )
 {
-	if( /*!prototxt_path ||*/ !model_path || !class_path || !input || !output )
+	if(/*!prototxt_path ||*/ !model_path || !class_path || !input || !output)
 		return false;
 
 	printf("\n");
@@ -134,27 +134,33 @@ bool imageNet::init(const char* prototxt_path, const char* model_path, const cha
 	/*
 	 * load and parse googlenet network definition and model file
 	 */
-	if( !tensorNet::LoadNetwork( prototxt_path, model_path, mean_binary, input, output, 
-						    maxBatchSize, precision, device, allowGPUFallback ) )
+	printf(LOG_TRT "Cargando modelo...\n");
+	if(!tensorNet::LoadNetwork(prototxt_path, model_path, mean_binary, input, output, maxBatchSize, precision, device, allowGPUFallback))
 	{
 		printf(LOG_TRT "failed to load %s\n", model_path);
 		return false;
 	}
 
-	printf(LOG_TRT "%s loaded\n", model_path);
+	//printf(LOG_TRT "%s loaded\n", model_path);
+	printf(LOG_TRT "Hecho\n");
+	printf(LOG_TRT "Modelo %s cargado\n\n", model_path);
 
+	printf(LOG_TRT "Cargando archivo %s ...\n", class_path);
 	/*
 	 * load synset classnames
 	 */
-	mOutputClasses = DIMS_C(mOutputs[0].dims);
+	//mOutputClasses = DIMS_C(mOutputs[0].dims);  // Línea original.
+	mOutputClasses = 2;							  // Línea agregada por mi.
 	
-	if( !loadClassInfo(class_path, mOutputClasses) || mClassSynset.size() != mOutputClasses || mClassDesc.size() != mOutputClasses )
+	if(!loadClassInfo(class_path, mOutputClasses) || mClassSynset.size() != mOutputClasses || mClassDesc.size() != mOutputClasses)
 	{
-		printf("imageNet -- failed to load synset class descriptions  (%zu / %zu of %u)\n", mClassSynset.size(), mClassDesc.size(), mOutputClasses);
+		//printf("imageNet -- failed to load synset class descriptions  (%zu / %zu of %u)\n", mClassSynset.size(), mClassDesc.size(), mOutputClasses);
+		printf("imageNet -- El modelo tiene %u salidas y el archivo de etiquetas tiene %zu\n", mOutputClasses, mClassSynset.size());
 		return false;
 	}
+	printf(LOG_TRT "Hecho\n\n");
 	
-	printf("%s initialized.\n", model_path);
+	//printf("\n%s initialized.\n", model_path);
 	return true;
 }
 			
@@ -423,12 +429,20 @@ bool imageNet::PreProcess( float* rgba, uint32_t width, uint32_t height )
 	}
 	else
 	{
+		/*
 		// downsample, convert to band-sequential BGR, and apply mean pixel subtraction 
 		if( CUDA_FAILED(cudaPreImageNetMeanBGR((float4*)rgba, width, height, mInputCUDA, mWidth, mHeight,
 									    make_float3(104.0069879317889f, 116.66876761696767f, 122.6789143406786f),
 									    GetStream())) )
 		{
 			printf(LOG_TRT "imageNet::PreProcess() -- cudaPreImageNetMeanBGR() failed\n");
+			return false;
+		}*/
+
+		// downsample, convert to band-sequential RGB, and apply pixel normalization
+		if( CUDA_FAILED(cudaPreImageNetNormRGB((float4*)rgba, width, height, mInputCUDA, mWidth, mHeight, make_float2(0.0f, 1.0f), GetStream())) )
+		{
+			printf(LOG_TRT "imageNet::PreProcess() -- cudaPreImageNetNormRGB() failed\n");
 			return false;
 		}
 	}
@@ -441,7 +455,7 @@ bool imageNet::PreProcess( float* rgba, uint32_t width, uint32_t height )
 // Process
 bool imageNet::Process()
 {
-	void* bindBuffers[] = { mInputCUDA, mOutputs[0].CUDA };	
+	void* bindBuffers[] = { mInputCUDA, mOutputs[0].CUDA };
 	cudaStream_t stream = GetStream();
 
 	PROFILER_BEGIN(PROFILER_NETWORK);
@@ -524,7 +538,7 @@ int imageNet::Classify( float* rgba, uint32_t width, uint32_t height, float* con
 
 
 // Classify
-int imageNet::Classify( float* confidence )
+int imageNet::Classify(float* confidence)
 {	
 	// process with TRT
 	if( !Process() )
@@ -546,7 +560,7 @@ int imageNet::Classify( float* confidence )
 		const float value = mOutputs[0].CPU[n] /** valueScale*/;
 		
 		if( value >= 0.01f )
-			printf("class %04zu - %f  (%s)\n", n, value, mClassDesc[n].c_str());
+			//printf("class %04zu - %f  (%s)\n", n, value, mClassDesc[n].c_str());
 	
 		if( value > classMax )
 		{
