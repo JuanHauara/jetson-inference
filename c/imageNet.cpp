@@ -116,13 +116,10 @@ bool imageNet::init( imageNet::NetworkType networkType, uint32_t maxBatchSize,
 
 // init
 bool imageNet::init(const char* prototxt_path, const char* model_path, const char* mean_binary, const char* class_path, 
-				const char* input, const char* output, uint32_t maxBatchSize,
-				precisionType precision, deviceType device, bool allowGPUFallback )
-{
-	if(/*!prototxt_path ||*/ !model_path || !class_path || !input || !output)
-		return false;
+					const char* input, const char* output, uint32_t maxBatchSize, precisionType precision, 
+					deviceType device, bool allowGPUFallback) {
+	if(/*!prototxt_path ||*/ !model_path || !class_path || !input || !output) return false;
 
-	printf("\n");
 	printf("imageNet -- loading classification network model from:\n");
 	printf("         -- prototxt     %s\n", prototxt_path);
 	printf("         -- model        %s\n", model_path);
@@ -131,36 +128,21 @@ bool imageNet::init(const char* prototxt_path, const char* model_path, const cha
 	printf("         -- output_blob  '%s'\n", output);
 	printf("         -- batch_size   %u\n\n", maxBatchSize);
 
-	/*
-	 * load and parse googlenet network definition and model file
-	 */
-	printf(LOG_TRT "Cargando modelo...\n");
-	if(!tensorNet::LoadNetwork(prototxt_path, model_path, mean_binary, input, output, maxBatchSize, precision, device, allowGPUFallback))
-	{
+	// Se carga el modelo
+	if(!tensorNet::LoadNetwork(prototxt_path, model_path, mean_binary, input, output, maxBatchSize, precision, device, allowGPUFallback)) {
 		printf(LOG_TRT "failed to load %s\n", model_path);
 		return false;
 	}
 
-	//printf(LOG_TRT "%s loaded\n", model_path);
-	printf(LOG_TRT "Hecho\n");
-	printf(LOG_TRT "Modelo %s cargado\n\n", model_path);
-
-	printf(LOG_TRT "Cargando archivo %s ...\n", class_path);
-	/*
-	 * load synset classnames
-	 */
 	//mOutputClasses = DIMS_C(mOutputs[0].dims);  // Línea original.
-	mOutputClasses = 2;							  // Línea agregada por mi.
+	mOutputClasses = 2;							  // Línea agregada por mi. Cambiar por el número de salidas que tenga el modelo.
 	
-	if(!loadClassInfo(class_path, mOutputClasses) || mClassSynset.size() != mOutputClasses || mClassDesc.size() != mOutputClasses)
-	{
-		//printf("imageNet -- failed to load synset class descriptions  (%zu / %zu of %u)\n", mClassSynset.size(), mClassDesc.size(), mOutputClasses);
-		printf("imageNet -- El modelo tiene %u salidas y el archivo de etiquetas tiene %zu\n", mOutputClasses, mClassSynset.size());
+	// Se carga el archivo labels.txt
+	if(!loadClassInfo(class_path, mOutputClasses) || mClassSynset.size() != mOutputClasses || mClassDesc.size() != mOutputClasses) {
+		printf("imageNet -- ERROR: El modelo tiene %u salidas y el archivo de etiquetas tiene %zu\n", mOutputClasses, mClassSynset.size());
 		return false;
 	}
-	printf(LOG_TRT "Hecho\n\n");
-	
-	//printf("\n%s initialized.\n", model_path);
+
 	return true;
 }
 			
