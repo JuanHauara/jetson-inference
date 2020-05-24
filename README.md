@@ -1,5 +1,7 @@
 Varias modificaciónes agregadas para que funcione con modelos de detección de imágenes creados en Keras.
-Actualmente funciona con modelos de clasificación de imágenes con dos salidas, si se desea modificar la cantidad de salidas, ir a la línea 153.
+Actualmente funciona con modelos de clasificación de imágenes con dos salidas, si se desea modificar la cantidad de salidas, ir al archivo 'jetson-inference/c/imageNet.cpp' y modificar la línea 138.
+
+
 
 <img src="https://github.com/dusty-nv/jetson-inference/raw/master/docs/images/deep-vision-header.jpg">
 
